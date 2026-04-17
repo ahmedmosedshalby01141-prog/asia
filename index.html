@@ -474,6 +474,29 @@
           max-width: 100%;
         }
       }
+      /* زرار واتساب عائم */
+.whatsapp-float {
+    position: fixed; bottom: 20px; left: 20px; /* يسار عشان السلة يمين */
+    background: #25d366; color: white; width: 60px; height: 60px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1500;
+    text-decoration: none; animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+    100% { transform: scale(1); }
+}
+
+/* إشعار الإضافة (Toast) */
+.toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--dark); color: white; padding: 12px 25px;
+    border-radius: 50px; font-weight: 600; z-index: 5000;
+    display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    animation: fadeInUp 0.4s ease;
+}
+@keyframes fadeInUp { from { opacity: 0; bottom: 10px; } to { opacity: 1; bottom: 30px; } }
     </style>
   </head>
   <body>
@@ -653,13 +676,22 @@
         renderProds();
       }
 
+      // دالة الإشعار الجمالي (Toast)
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 2500);
+      }
+
       function addToCart(id) {
         const product = db.products.find((x) => x.id === id);
         const inCart = db.cart.find((x) => x.id === id);
         if (inCart) inCart.q++;
         else db.cart.push({ ...product, q: 1 });
+        
         updateCart();
-        console.log("تمت الإضافة للسلة");
+        showToast(`تمت إضافة ${product.name} للسلة ✨`);
       }
 
       function changeQty(id, delta) {
@@ -728,5 +760,10 @@
         <div id="pp-content" class="pp-grid"></div>
       </div>
     </div>
+    <a href="https://wa.me/201288660002" class="whatsapp-float" target="_blank">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="35" alt="WhatsApp">
+</a>
+
+<div id="toast" class="toast">تمت الإضافة للسلة ✨</div>
   </body>
 </html>
