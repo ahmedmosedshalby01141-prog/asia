@@ -1,21 +1,25 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-  <head>
-
-<meta property="og:title" content="آسيا | الموضة العصرية">
-<meta property="og:description" content="تسوقي أحدث الأزياء العصرية بلمسة راقية ✨">
-<meta property="og:image" content="  https://l.top4top.io/p_3759paqj21.jpg    "> <meta property="og:url" content="https://asia-two.vercel.app/">
-
-    <meta name="keywords" content="ملابس نسائية, موضة, آسيا, فساتين, متجر ملابس مصر">
-    <meta name="description" content="متجر آسيا للموضة العصرية - أحدث أزياء السيدات بجودة عالية وتوصيل سريع">
-    <meta name="google-site-verification" content="v9y5eUzOnJQjU0GY5MOljS9BN1lsqul-gD8RGDILqmY" />
+ <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>آسيا | الموضة العصرية</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
-      rel="stylesheet"
-    />
+
+    <meta name="description" content="متجر آسيا للموضة العصرية - أحدث أزياء السيدات بجودة عالية وتوصيل سريع لجميع المحافظات.">
+    <meta name="keywords" content="ملابس نسائية, موضة, آسيا, فساتين, متجر ملابس مصر, ملابس عصرية">
+    <meta name="google-site-verification" content="v9y5eUzOnJQjU0GY5MOljS9BN1lsqul-gD8RGDILqmY" />
+
+    <meta property="og:title" content="آسيا | الموضة العصرية">
+    <meta property="og:description" content="تسوقي أحدث الأزياء العصرية بلمسة راقية ✨ اطلبي الآن عبر الواتساب.">
+    <meta property="og:image" content="https://l.top4top.io/p_3759paqj21.jpg">
+    <meta property="og:url" content="https://asia-two.vercel.app/">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+
+    </head>
     <style>
       /* المتغيرات الأساسية */
       :root {
@@ -505,6 +509,58 @@
     animation: fadeInUp 0.4s ease;
 }
 @keyframes fadeInUp { from { opacity: 0; bottom: 10px; } to { opacity: 1; bottom: 30px; } }
+
+/* تحسين شكل بطاقة المنتج */
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+}
+
+.card img:hover {
+    filter: brightness(0.9);
+}
+
+/* تحسين شكل أزرار الكمية في السلة */
+.qty-controls {
+    background: #f1f1f1;
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+
+.qty-btn {
+    border: none !important;
+    background: transparent !important;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--primary);
+}
+
+/* تحسين شكل زر "حذف" في السلة */
+.del-item {
+    color: #ff4d4d;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-top: 5px;
+}
+
+/* إضافة لمسة جمالية للهيدر */
+header {
+    border-bottom: 2px solid var(--soft-pink);
+}
+
+/* تحسين شكل شريط البحث */
+input#search:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+}
+
+
+.share-btn:active {
+    transform: scale(0.95);
+    background-color: #e5e5e5;
+}
+
     </style>
   </head>
   <body>
@@ -573,7 +629,7 @@
       let db = { products: [], cart: [] },
         curCat = "all";
 
-      async function init() {
+     async function init() {
         try {
           const [pRaw, cRaw] = await Promise.all([
             fetch(GET_URL("products")),
@@ -581,8 +637,18 @@
           ]);
           db.products = parseCSV(await pRaw.text());
           renderCats(parseCSV(await cRaw.text()));
-          renderFeatured(); // تشغيل قسم وصل حديثاً
+          renderFeatured(); 
           renderProds();
+
+          // الجزء الجديد بيبدأ هنا:
+          // وظيفته إنه يشوف لو اللينك فيه رقم منتج يفتحه فوراً
+          const urlParams = new URLSearchParams(window.location.search);
+          const productId = urlParams.get('id');
+          if (productId) {
+            // استنينا ثانية (1000ms) عشان نتأكد إن البيانات اتحملت قبل ما نفتح الصفحة
+            setTimeout(() => openProductPage(productId), 1000); 
+          }
+          
         } catch (e) {
           console.error("خطأ في الاتصال بالشيت:", e);
         }
@@ -648,30 +714,52 @@
           .join("");
       }
 
-      function openProductPage(id) {
-        const p = db.products.find((x) => x.id === id);
-        const content = document.getElementById("pp-content");
+     function openProductPage(id) {
+    const p = db.products.find((x) => x.id === id);
+    const content = document.getElementById("pp-content");
 
-        content.innerHTML = `
-        <div class="pp-image">
-            <img src="${p.image}" alt="${p.name}">
-        </div>
-        <div class="pp-details">
-            <h1>${p.name}</h1>
-            <div class="pp-price">${p.price} ج.م</div>
-            <p class="pp-desc">${p.description || "قطعة مميزة من تشكيلة آسيا، صُممت بعناية لتناسب ذوقك الرفيع وتمنحك إطلالة استثنائية."}</p>
-            <button class="order-btn" onclick="addToCart('${p.id}'); closeProductPage();">إضافة لحقيبة التسوق 🛍️</button>
-            <div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:10px; font-size:0.9rem; color:#666;">
-                ✅ خامات عالية الجودة <br>
-                🚚 توصيل سريع لجميع المحافظات <br>
-                📦 معاينة المنتج عند الاستلام
-            </div>
-        </div>
-    `;
-        document.getElementById("product-page").style.display = "block";
-        document.body.style.overflow = "hidden";
-      }
+    content.innerHTML = `
+    <div class="pp-image">
+        <img src="${p.image}" alt="${p.name}">
+    </div>
+    <div class="pp-details">
+        <h1>${p.name}</h1>
+        <div class="pp-price">${p.price} ج.م</div>
+        <p class="pp-desc">${p.description || "قطعة مميزة من تشكيلة آسيا، صُممت بعناية لتناسب ذوقك الرفيع وتمنحك إطلالة استثنائية."}</p>
+        
+        <button class="order-btn" onclick="addToCart('${p.id}'); closeProductPage();">إضافة لحقيبة التسوق 🛍️</button>
+        
+        <button class="share-btn" onclick="shareProduct('${p.id}', '${p.name}')" style="width:100%; background:#f1f1f1; border:1px solid #ddd; padding:12px; border-radius:10px; font-weight:700; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            مشاركة المنتج 🔗
+        </button>
 
+        <div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:10px; font-size:0.9rem; color:#666;">
+            ✅ خامات عالية الجودة <br>
+            🚚 توصيل سريع لجميع المحافظات <br>
+            📦 معاينة المنتج عند الاستلام
+        </div>
+    </div>
+`;
+    document.getElementById("product-page").style.display = "block";
+    document.body.style.overflow = "hidden";
+}
+
+// ولا تنسَ إضافة هذه الدالة أيضاً أسفل السكربت ليعمل الزر:
+async function shareProduct(id, name) {
+    const shareData = {
+        title: `آسيا | ${name}`,
+        text: `بصي القطعة دي من متجر آسيا، تجنن! ✨`,
+        url: window.location.href, 
+    };
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            showToast("تم نسخ رابط الموقع لمشاركته 📋");
+        }
+    } catch (err) { console.log("Error:", err); }
+}
       function closeProductPage() {
         document.getElementById("product-page").style.display = "none";
         document.body.style.overflow = "auto";
@@ -758,6 +846,27 @@
       }
 
       init();
+
+async function shareProduct(id, name) {
+    // اللينك الآن سيحمل رقم المنتج ليفتح عليه مباشرة
+    const productUrl = `${window.location.origin}${window.location.pathname}?id=${id}`;
+    
+    const shareData = {
+        title: `آسيا | ${name}`,
+        text: `بصي القطعة دي من متجر آسيا، تجنن! ✨`,
+        url: productUrl, 
+    };
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            navigator.clipboard.writeText(productUrl);
+            showToast("تم نسخ رابط المنتج لمشاركته 📋");
+        }
+    } catch (err) { console.log("Error:", err); }
+}
+
+
     </script>
     <div id="product-page" class="product-page">
       <div class="pp-container">
@@ -773,5 +882,6 @@
 </a>
 
 <div id="toast" class="toast">تمت الإضافة للسلة ✨</div>
+<div id="toast" class="toast"></div>
   </body>
 </html>
