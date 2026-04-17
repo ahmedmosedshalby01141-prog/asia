@@ -70,6 +70,28 @@
         .add-btn { background: var(--dark); color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 1rem; }
         .add-btn:hover { background: var(--primary); }
 
+        /* تصميم صفحة المنتج (المودال) */
+.product-page {
+    display: none; position: fixed; inset: 0; background: var(--white); z-index: 3000;
+    overflow-y: auto; animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.pp-container { width: 92%; max-width: 1000px; margin: 20px auto; padding-bottom: 50px; }
+.pp-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; position: sticky; top: 0; background: white; }
+.pp-close { font-size: 1.5rem; cursor: pointer; background: #eee; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+.pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+.pp-image img { width: 100%; border-radius: 20px; box-shadow: var(--shadow); }
+.pp-details h1 { font-size: 2rem; margin-top: 0; }
+.pp-price { font-size: 1.8rem; color: var(--primary); font-weight: 900; margin: 15px 0; }
+.pp-desc { line-height: 1.8; color: #555; font-size: 1.1rem; margin-bottom: 30px; }
+
+@media (max-width: 768px) {
+    .pp-grid { grid-template-columns: 1fr; }
+    .pp-details h1 { font-size: 1.5rem; }
+}
+
         /* مودال السلة المتطور */
         #cart-modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 2000; }
         .cart-content { background: white; width: 100%; max-width: 450px; height: 100%; margin-right: auto; padding: 40px 25px; display: flex; flex-direction: column; animation: slideIn 0.4s ease-out; }
@@ -149,131 +171,171 @@
     </div>
 
     <script>
-        const SHEET_ID = '1vmPi-iZIi5VkzZJMr8846C8KHatx38Toq6m_xPdkv40';
-        const GET_URL = (name) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${name}`;
-        
-        let db = { products: [], cart: [] }, curCat = 'all';
+       const SHEET_ID = '1vmPi-iZIi5VkzZJMr8846C8KHatx38Toq6m_xPdkv40';
+const GET_URL = (name) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${name}`;
 
-        async function init() {
-            try {
-                const [pRaw, cRaw] = await Promise.all([fetch(GET_URL('products')), fetch(GET_URL('categories'))]);
-                db.products = parseCSV(await pRaw.text());
-                renderCats(parseCSV(await cRaw.text()));
-                renderProds();
-            } catch (e) {
-                console.error("خطأ في الاتصال بالشيت:", e);
-            }
-        }
+let db = { products: [], cart: [] }, curCat = 'all';
 
-        function parseCSV(csv) {
-            const lines = csv.split('\n').filter(l => l.trim() !== '');
-            const headers = lines[0].replace(/"/g, '').split(',');
-            return lines.slice(1).map(line => {
-                const values = line.replace(/"/g, '').split(',');
-                let obj = {};
-                headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim());
-                return obj;
-            });
-        }
+async function init() {
+    try {
+        const [pRaw, cRaw] = await Promise.all([fetch(GET_URL('products')), fetch(GET_URL('categories'))]);
+        db.products = parseCSV(await pRaw.text());
+        renderCats(parseCSV(await cRaw.text()));
+        renderProds();
+    } catch (e) {
+        console.error("خطأ في الاتصال بالشيت:", e);
+    }
+}
 
-        function renderCats(list) {
-            const div = document.getElementById('cats');
-            list.forEach(c => div.innerHTML += `<span onclick="setCat('${c.id}', this)">${c.name}</span>`);
-        }
+function parseCSV(csv) {
+    const lines = csv.split('\n').filter(l => l.trim() !== '');
+    const headers = lines[0].replace(/"/g, '').split(',');
+    return lines.slice(1).map(line => {
+        const values = line.replace(/"/g, '').split(',');
+        let obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim());
+        return obj;
+    });
+}
 
-        function renderProds() {
-            const grid = document.getElementById('products');
-            const term = document.getElementById('search').value.toLowerCase();
-            const filtered = db.products.filter(p => 
-                (curCat === 'all' || p.category_id === curCat) && 
-                (p.name.toLowerCase().includes(term))
-            );
+function renderCats(list) {
+    const div = document.getElementById('cats');
+    list.forEach(c => div.innerHTML += `<span onclick="setCat('${c.id}', this)">${c.name}</span>`);
+}
 
-            grid.innerHTML = filtered.map(p => `
-                <div class="card">
-                    <img src="${p.image}" alt="${p.name}">
-                    <div class="card-body">
-                        <h3>${p.name}</h3>
-                        <div class="price">${p.price} ج.م</div>
-                        <button class="add-btn" onclick="addToCart('${p.id}')">إضافة للسلة 🛍️</button>
+// 1. تعديل عرض المنتجات ليفتح صفحة المنتج عند الضغط على الصورة
+function renderProds() {
+    const grid = document.getElementById('products');
+    const term = document.getElementById('search').value.toLowerCase();
+    const filtered = db.products.filter(p => 
+        (curCat === 'all' || p.category_id === curCat) && 
+        (p.name.toLowerCase().includes(term))
+    );
+
+    grid.innerHTML = filtered.map(p => `
+        <div class="card">
+            <img src="${p.image}" alt="${p.name}" onclick="openProductPage('${p.id}')" style="cursor: zoom-in;">
+            <div class="card-body">
+                <h3>${p.name}</h3>
+                <div class="price">${p.price} ج.م</div>
+                <button class="add-btn" onclick="addToCart('${p.id}')">إضافة للسلة 🛍️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 2. دالة فتح "صفحة المنتج"
+function openProductPage(id) {
+    const p = db.products.find(x => x.id === id);
+    const content = document.getElementById('pp-content');
+    
+    content.innerHTML = `
+        <div class="pp-image">
+            <img src="${p.image}" alt="${p.name}">
+        </div>
+        <div class="pp-details">
+            <h1>${p.name}</h1>
+            <div class="pp-price">${p.price} ج.م</div>
+            <p class="pp-desc">${p.description || "قطعة مميزة من تشكيلة آسيا، صُممت بعناية لتناسب ذوقك الرفيع وتمنحك إطلالة استثنائية."}</p>
+            <button class="order-btn" onclick="addToCart('${p.id}'); closeProductPage();">إضافة لحقيبة التسوق 🛍️</button>
+            <div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:10px; font-size:0.9rem; color:#666;">
+                ✅ خامات عالية الجودة <br>
+                🚚 توصيل سريع لجميع المحافظات <br>
+                📦 معاينة المنتج عند الاستلام
+            </div>
+        </div>
+    `;
+    document.getElementById('product-page').style.display = 'block';
+    document.body.style.overflow = 'hidden'; // منع السكرول خلف الصفحة
+}
+
+function closeProductPage() {
+    document.getElementById('product-page').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function setCat(id, el) {
+    curCat = id;
+    document.querySelectorAll('.filters span').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    renderProds();
+}
+
+function addToCart(id) {
+    const product = db.products.find(x => x.id === id);
+    const inCart = db.cart.find(x => x.id === id);
+    if(inCart) inCart.q++; else db.cart.push({...product, q:1});
+    updateCart();
+    
+    // إشعار بسيط بدلاً من الـ Alert المزعج (اختياري)
+    console.log("تمت الإضافة للسلة");
+}
+
+function changeQty(id, delta) {
+    const item = db.cart.find(x => x.id === id);
+    item.q += delta;
+    if (item.q <= 0) db.cart = db.cart.filter(x => x.id !== id);
+    updateCart();
+}
+
+function updateCart() {
+    document.getElementById('c-count').innerText = db.cart.reduce((a,b) => a + parseInt(b.q), 0);
+    let total = 0;
+    document.getElementById('cart-list').innerHTML = db.cart.map(i => {
+        const sub = parseInt(i.price) * i.q;
+        total += sub;
+        return `
+            <div class="cart-item">
+                <img src="${i.image}">
+                <div class="item-info">
+                    <strong>${i.name}</strong>
+                    <div>${i.price} ج.م</div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="changeQty('${i.id}', -1)">-</button>
+                        <span>${i.q}</span>
+                        <button class="qty-btn" onclick="changeQty('${i.id}', 1)">+</button>
                     </div>
                 </div>
-            `).join('');
-        }
+                <div class="del-item" onclick="changeQty('${i.id}', -${i.q})">حذف</div>
+            </div>`;
+    }).join('');
+    document.getElementById('total').innerText = total;
+}
 
-        function setCat(id, el) {
-            curCat = id;
-            document.querySelectorAll('.filters span').forEach(s => s.classList.remove('active'));
-            el.classList.add('active');
-            renderProds();
-        }
+function toggleCart() {
+    const m = document.getElementById('cart-modal');
+    m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+}
 
-        function addToCart(id) {
-            const product = db.products.find(x => x.id === id);
-            const inCart = db.cart.find(x => x.id === id);
-            if(inCart) inCart.q++; else db.cart.push({...product, q:1});
-            updateCart();
-            // انيميشن بسيط للزر
-            if (!document.getElementById('cart-modal').style.display || document.getElementById('cart-modal').style.display === 'none') {
-                alert("تمت الإضافة للسلة ✨");
-            }
-        }
+function sendOrder() {
+    const name = document.getElementById('u-name').value;
+    const addr = document.getElementById('u-addr').value;
+    if(!name || !addr || db.cart.length === 0) return alert('برجاء إدخال البيانات والمنتجات');
 
-        function changeQty(id, delta) {
-            const item = db.cart.find(x => x.id === id);
-            item.q += delta;
-            if (item.q <= 0) db.cart = db.cart.filter(x => x.id !== id);
-            updateCart();
-        }
+    let orderText = `طلب جديد من متجر آسيا 🌸\n\n`;
+    orderText += `الاسم: ${name}\n`;
+    orderText += `العنوان: ${addr}\n\n`;
+    orderText += `المنتجات:\n`;
+    db.cart.forEach(i => {
+        orderText += `- ${i.name} | العدد: ${i.q} | السعر: ${i.price * i.q} ج.م\n`;
+    });
+    orderText += `\nإجمالي الحساب: ${document.getElementById('total').innerText} ج.م`;
 
-        function updateCart() {
-            document.getElementById('c-count').innerText = db.cart.reduce((a,b) => a + parseInt(b.q), 0);
-            let total = 0;
-            document.getElementById('cart-list').innerHTML = db.cart.map(i => {
-                const sub = parseInt(i.price) * i.q;
-                total += sub;
-                return `
-                    <div class="cart-item">
-                        <img src="${i.image}">
-                        <div class="item-info">
-                            <strong>${i.name}</strong>
-                            <div>${i.price} ج.م</div>
-                            <div class="qty-controls">
-                                <button class="qty-btn" onclick="changeQty('${i.id}', -1)">-</button>
-                                <span>${i.q}</span>
-                                <button class="qty-btn" onclick="changeQty('${i.id}', 1)">+</button>
-                            </div>
-                        </div>
-                        <div class="del-item" onclick="changeQty('${i.id}', -${i.q})">حذف</div>
-                    </div>`;
-            }).join('');
-            document.getElementById('total').innerText = total;
-        }
+    const waUrl = `https://wa.me/201288660002?text=${encodeURIComponent(orderText)}`;
+    window.open(waUrl, '_blank');
+}
 
-        function toggleCart() {
-            const m = document.getElementById('cart-modal');
-            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function sendOrder() {
-            const name = document.getElementById('u-name').value;
-            const addr = document.getElementById('u-addr').value;
-            if(!name || !addr || db.cart.length === 0) return alert('برجاء إدخال البيانات والمنتجات');
-
-            let orderText = `طلب جديد من متجر آسيا 🌸\n\n`;
-            orderText += `الاسم: ${name}\n`;
-            orderText += `العنوان: ${addr}\n\n`;
-            orderText += `المنتجات:\n`;
-            db.cart.forEach(i => {
-                orderText += `- ${i.name} | العدد: ${i.q} | السعر: ${i.price * i.q} ج.م\n`;
-            });
-            orderText += `\nإجمالي الحساب: ${document.getElementById('total').innerText} ج.م`;
-
-            const waUrl = `https://wa.me/201288660002?text=${encodeURIComponent(orderText)}`;
-            window.open(waUrl, '_blank');
-        }
-
-        init();
+init();
     </script>
+    <div id="product-page" class="product-page">
+    <div class="pp-container">
+        <div class="pp-header">
+            <div class="pp-close" onclick="closeProductPage()">✕</div>
+            <div class="logo">آسيا</div>
+        </div>
+        <div id="pp-content" class="pp-grid">
+            </div>
+    </div>
+</div>
 </body>
 </html>
