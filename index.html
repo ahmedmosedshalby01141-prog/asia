@@ -69,13 +69,23 @@
         .wa-float { position: fixed; bottom: 20px; left: 20px; background: #25d366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; z-index: 1500; text-decoration: none; box-shadow: var(--shadow); }
 
         @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } .main-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
+    
+    /* تنسيق قسم منتجات ذات صلة */
+.related-title { margin-top: 40px; font-weight: 900; font-size: 1.2rem; border-top: 1px solid #eee; padding-top: 20px; margin-bottom: 15px; }
+.related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.related-item { background: white; border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; text-align: center; padding-bottom: 10px; }
+.related-item img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+.related-item h4 { font-size: 0.8rem; margin: 5px; height: 35px; overflow: hidden; }
+.related-item div { color: var(--p); font-weight: bold; font-size: 0.85rem; }
+    
+    
     </style>
 </head>
 <body>
 
     <nav>
         <div class="nav-inner">
-            <div class="logo" onclick="location.reload()">آسـيـا</div>
+            <div class="logo" onclick="location.reload()">آسيا</div>
             <div class="cart-btn" onclick="toggleCart()">
                 <span>السلة</span> <span id="c-count">0</span>
             </div>
@@ -199,9 +209,30 @@
             }).join('');
         }
 
-        function openProduct(id) {
+      function openProduct(id) {
             const p = prods.find(x => x.id == id);
             if(!p) return;
+
+            // --- محرك المنتجات ذات الصلة ---
+            // نبحث عن منتجات من نفس القسم ونستبعد المنتج الحالي، ونأخذ أول قطعتين فقط
+            const relatedProds = prods.filter(x => x.category_id === p.category_id && x.id !== p.id).slice(0, 2);
+            let relatedHTML = "";
+            
+            if(relatedProds.length > 0) {
+                relatedHTML = `
+                <h3 class="related-title">منتجات قد تعجبك أيضاً ✨</h3>
+                <div class="related-grid">
+                    ${relatedProds.map(r => `
+                        <div class="related-item" onclick="openProduct('${r.id}')">
+                            <img src="${r.image}">
+                            <h4>${r.name}</h4>
+                            <div>${r.price} ج.م</div>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+            // ------------------------------
+
             document.getElementById('p-content').innerHTML = `
                 <img src="${p.image}" style="width:100%; border-radius:25px; box-shadow:var(--shadow);">
                 <div>
@@ -216,9 +247,14 @@
                         <button class="btn-add" onclick="addToCart('${p.id}'); closeProduct();" style="padding:18px; font-size:1.2rem; flex:2;">إضافة للسلة 🛒</button>
                         <button onclick="shareProd('${p.id}', '${p.name}')" style="background:#eee; border:none; padding:15px; border-radius:12px; cursor:pointer; flex:1;">مشاركة 🔗</button>
                     </div>
+                    
+                    ${relatedHTML}
                 </div>`;
             document.getElementById('p-detail').style.display = 'block';
             document.body.style.overflow = 'hidden';
+            
+            // لضمان صعود الصفحة للأعلى عند فتح منتج جديد من الاقتراحات
+            document.getElementById('p-detail').scrollTop = 0;
         }
 
         function addToCart(id) {
