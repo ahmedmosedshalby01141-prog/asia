@@ -77,13 +77,29 @@
 .related-item img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 .related-item h4 { font-size: 0.8rem; margin: 5px; height: 35px; overflow: hidden; }
 .related-item div { color: var(--p); font-weight: bold; font-size: 0.85rem; }
-    
+    /* زر المفضلة داخل كارت المنتج */
+.fav-btn {
+    position: absolute; top: 15px; left: 15px; 
+    background: white; border-radius: 50%; width: 35px; height: 35px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: var(--shadow); z-index: 10; font-size: 1.2rem;
+}
+.fav-btn.active { color: #ef4444; }
+
+/* قسم المفضلة المخفي */
+#fav-screen {
+    position: fixed; inset: 0; background: white; z-index: 2500;
+    display: none; overflow-y: auto; padding: 20px 5%;
+}
     
     </style>
 </head>
 <body>
 
     <nav>
+        <div class="cart-btn" onclick="toggleFavs()" style="background:#fff; color:#333; margin-left:10px;">
+    <span>❤️</span> <span id="f-count">0</span>
+</div>
         <div class="nav-inner">
             <div class="logo" onclick="location.reload()">آسيا</div>
             <div class="cart-btn" onclick="toggleCart()">
@@ -147,41 +163,43 @@
         firebase.initializeApp(firebaseConfig);
         const dbRef = firebase.database();
 
-        let prods = [], cart = JSON.parse(localStorage.getItem('asia_cart')) || [], curCat = "all";
+       let prods = [], cart = JSON.parse(localStorage.getItem('asia_cart')) || [], favs = JSON.parse(localStorage.getItem('asia_favs')) || [], curCat = "all";
 
-        function init() {
-            // جلب الأقسام
-            dbRef.ref('categories').on('value', s => {
-                const cats = s.val() ? Object.values(s.val()) : [];
-                const div = document.getElementById('cats-list');
-                div.innerHTML = `<div class="cat-btn ${curCat==='all'?'active':''}" onclick="setCat('all', this)">الكل</div>`;
-                cats.forEach(c => div.innerHTML += `<div class="cat-btn" onclick="setCat('${c.id}', this)">${c.name}</div>`);
-            });
-
-            // جلب المنتجات
-            dbRef.ref('products').on('value', s => {
-                prods = s.val() ? Object.values(s.val()).reverse() : [];
-                renderFeatured();
-                renderProds();
-                
-                // Deep Link Check
-                const pid = new URLSearchParams(window.location.search).get('id');
-                if(pid) setTimeout(() => openProduct(pid), 1000);
-            });
-            updateCartUI();
+       function init() {
+    dbRef.ref('categories').on('value', s => {
+        const cats = s.val() ? Object.values(s.val()) : [];
+        const div = document.getElementById('cats-list');
+        if(div) {
+            div.innerHTML = `<div class="cat-btn ${curCat==='all'?'active':''}" onclick="setCat('all', this)">الكل</div>`;
+            cats.forEach(c => div.innerHTML += `<div class="cat-btn" onclick="setCat('${c.id}', this)">${c.name}</div>`);
         }
+    });
 
-        function renderFeatured() {
+    dbRef.ref('products').on('value', s => {
+        prods = s.val() ? Object.values(s.val()).reverse() : [];
+        renderFeatured();
+        renderProds();
+        if (typeof updateFavUI === "function") updateFavUI();
+        const pid = new URLSearchParams(window.location.search).get('id');
+        if(pid) setTimeout(() => openProduct(pid), 1000);
+    });
+    updateCartUI();
+}
+
+      function renderFeatured() {
             const list = prods.slice(0, 6);
-            document.getElementById('f-list').innerHTML = list.map(p => `
+            document.getElementById('f-list').innerHTML = list.map(p => {
+                const isFav = favs.includes(p.id) ? 'active' : '';
+                return `
                 <div class="f-item" onclick="openProduct('${p.id}')">
+                    <div class="fav-btn ${isFav}" onclick="toggleFav('${p.id}', event)">❤️</div>
                     <img src="${p.image}">
                     <div style="padding:15px; position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent, rgba(0,0,0,0.8)); color:white;">
                         <div style="font-weight:700;">${p.name}</div>
                         <div style="font-size:0.9rem;">${p.price} ج.م</div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function renderProds() {
@@ -192,9 +210,11 @@
             grid.innerHTML = filtered.map(p => {
                 const hasDisc = p.old_price && parseInt(p.old_price) > parseInt(p.price);
                 const perc = hasDisc ? Math.round(((p.old_price - p.price) / p.old_price) * 100) : 0;
+                const isFav = favs.includes(p.id) ? 'active' : '';
                 
                 return `
                 <div class="p-card">
+                    <div class="fav-btn ${isFav}" onclick="toggleFav('${p.id}', event)">❤️</div>
                     ${hasDisc ? `<div class="disc-tag">-${perc}% خصم</div>` : ''}
                     <img src="${p.image}" onclick="openProduct('${p.id}')">
                     <div class="p-info">
@@ -308,13 +328,72 @@
             else { navigator.clipboard.writeText(url); showToast("تم نسخ الرابط 📋"); }
         }
 
-        function save() { localStorage.setItem('asia_cart', JSON.stringify(cart)); }
+      function save() { 
+    localStorage.setItem('asia_cart', JSON.stringify(cart)); 
+    localStorage.setItem('asia_favs', JSON.stringify(favs)); 
+}
         function toggleCart() { const m = document.getElementById('cart-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
         function closeProduct() { document.getElementById('p-detail').style.display = 'none'; document.body.style.overflow = 'auto'; }
         function setCat(id, el) { curCat = id; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); el.classList.add('active'); renderProds(); }
         function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display='none', 2500); }
 
         init();
+       
+
+// دالة إضافة/حذف من المفضلة
+function toggleFav(id, event) {
+    if(event) event.stopPropagation(); // منع فتح المنتج عند الضغط على القلب
+    const index = favs.indexOf(id);
+    if(index > -1) {
+        favs.splice(index, 1);
+        showToast("تم الحذف من المفضلة 💔");
+    } else {
+        favs.push(id);
+        showToast("تمت الإضافة للمفضلة ❤️");
+    }
+    localStorage.setItem('asia_favs', JSON.stringify(favs));
+    renderProds();
+    renderFeatured();
+    updateFavUI();
+}
+
+// تحديث العداد وشاشة المفضلة
+function updateFavUI() {
+    document.getElementById('f-count').innerText = favs.length;
+    const favGrid = document.getElementById('fav-grid');
+    const filteredFavs = prods.filter(p => favs.includes(p.id));
+    
+    if(filteredFavs.length === 0) {
+        favGrid.innerHTML = `<p style="text-align:center; grid-column: 1/-1; padding:50px;">لا يوجد منتجات في مفضلتك حالياً.</p>`;
+    } else {
+        favGrid.innerHTML = filteredFavs.map(p => `
+            <div class="p-card">
+                <div class="fav-btn active" onclick="toggleFav('${p.id}', event)">❤️</div>
+                <img src="${p.image}" onclick="openProduct('${p.id}')">
+                <div class="p-info">
+                    <h3>${p.name}</h3>
+                    <div class="p-price">${p.price} ج.م</div>
+                    <button class="btn-add" onclick="addToCart('${p.id}')">أضف للسلة 🛍️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+function toggleFavs() {
+    const screen = document.getElementById('fav-screen');
+    const isHidden = screen.style.display === 'none' || screen.style.display === '';
+    screen.style.display = isHidden ? 'block' : 'none';
+    if(isHidden) updateFavUI();
+}
     </script>
+
+    <div id="fav-screen">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-weight:900;">منتجاتي المفضلة ❤️</h2>
+        <button onclick="toggleFavs()" style="padding:10px 20px; border-radius:50px; border:none; background:var(--d); color:white; cursor:pointer;">إغلاق</button>
+    </div>
+    <div class="main-grid" id="fav-grid"></div>
+</div>
 </body>
 </html>
